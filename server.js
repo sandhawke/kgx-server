@@ -8,6 +8,7 @@ const datasets = new Map()
 
 const app = express()
 const port = 5511
+const siteprefix = ''
 let status = 'Loading datasets'
 
 async function start () {
@@ -23,6 +24,10 @@ async function start () {
 }
 
 // app.get(/^\/([^/]*)\/?/, async (req, res) => {
+
+app.use('/static', express.static('static', {
+  extensions: ['html']
+}))
 
 app.get('/', async (req, res) => {
   const buf = []
@@ -123,15 +128,55 @@ function html (req, res) {
       }
       data.push([q.subject.id, q.predicate.id, val, q.graph.id])
     }
-    const model = req.params.model
-    const nav = H`
-<p>Model: <a href="quads">quads</a> | <a href="rows">rows</a><br />
-Format: <a href="./${model}.html">html</a> | <a href="./${model}.csv">csv</a> | <a href="./${model}.json">json</a></p>
-`
-    res.send(nav + CSV.stringify(data))
+
+    page(req, res, CSV.stringify(data))
     return
   }
   res.send('Not implemented')
+}
+
+function page (req, res, body) {
+  const p = req.params
+  let title = 'signal data server'
+
+  let dataset = H`${p.dataset}`
+  // make dataset include the title and a link to an about page, if that's in there
+  const kb = datasets.get(p.dataset)
+  // WHATS MY URL?
+  // How do I say dc:title?
+  // Where is the last_modified to be found?  In the outer quadstore, someday.
+  console.log(null, kb.namedNode('https://example.org/title'), kb.defaultGraph())
+  const titles = kb.getObjects(null, kb.namedNode('https://example.org/title'), kb.defaultGraph())
+  console.log('titles', titles)
+  if (titles.length > 0) {
+    dataset += H` "${titles[0].value}"`
+    title += H` "${titles[0].value}"`
+  }
+  
+  const nav = H`
+<ul class="nav">
+  <li>Model: <a href="quads">quads</a> | <a href="rows">rows</a></li>
+  <li>Format: <a href="./${p.model}.html">table</a> | <a href="./${p.model}.csv">csv</a> | <a href="./${p.model}.json">json</a></li>
+  <li>Actions: <a href="@@@">download</a></li></ul>
+`
+  // pop-out as action?   if ?framed=true
+  
+  res.send( /* NO H, ONLY TRUSTED DATA */`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="${siteprefix}/static/reset.css">
+  <link rel="stylesheet" href="${siteprefix}/static/main.css">
+  <title>${title}</title>
+</head>
+<body>
+  <div class="header">
+    <h2>${dataset}</h2>
+    ${nav}
+  </div>
+  <div class="databox">${body}</div>
+</body></html>
+`)
 }
 
 // the difference between json and jsonld is ONLY what media-type we
