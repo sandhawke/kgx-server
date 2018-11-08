@@ -1,0 +1,14 @@
+PREFIX : <https://example.org/>
+:s1 :p1 1.
+:s2 :p2 2.
+:s3 :title 'Simple Demo Dataset #2'.
+
+:g1 {
+:s1 :p1 10. 
+:s2 :p2 20.
+}
+
+_:obs1 { :article1 :credibiltiyRating 2; }
+_:obs1 :byUser :user1; :startTime "time"; :endTime "time2".
+_:obs2 { :article2 :isOriginal true; }
+_:obs2 :byUser :user1; :startTime "time"; :endTime "time2".

@@ -1,3 +1,16 @@
+/*
+
+We merge req.params and req.query into p.  These are the values we look for:
+  
+  p.dataset = a key into datasets map
+  p.shape = quads | obs
+  p.format = csv | json | ...
+  p.return = html | data
+  p.type = 'application/json+ld'    as an override if you want
+  p.properties
+
+*/
+
 const rdfkb = require('rdfkb')
 const express = require('express')
 const H = require('escape-html-template-tag') // H.safe( ) if needed
@@ -16,7 +29,7 @@ async function start () {
   // could move this to after the data is loaded if we want
   app.listen(port, () => console.log(`http://localhost:${port}!`))
 
-  for (const name of ['demo-1' /*, 'zhang18' */ ]) {
+  for (const name of ['demo-1', 'demo-2' /*, 'zhang18' */ ]) {
     const kb = rdfkb.create()
     datasets.set(name, kb)
     await kb.aload(name + '.trig')
@@ -31,9 +44,11 @@ app.use('/static', express.static('static', {
 }))
 
 app.get('/', async (req, res) => {
-  if (req.query.dataset) {
-    return page(req, res)
-  }
+  if (!req.query.dataset) req.query.dataset = 'demo-1'
+  return page(req, res)
+})
+
+app.get('/_list/',   async (req, res) => {
   const buf = []
   buf.push(H`<p>Datasets:</p><ol>`)
   for (const [key, value] of datasets) {
@@ -44,111 +59,43 @@ app.get('/', async (req, res) => {
 })
 
 app.get('/:dataset', async (req, res) => {
-  res.redirect('/' + req.params.dataset + '/rows')
+  res.redirect('/' + req.params.dataset + '/quads')
 })
-/*
-function csv(req, res) {
-  res.set('Content-Type', 'text/csv')
-  res.send('A,B,C,D')
-}
-*/
 
-// allow users to provide the suffice instead of doing con-neg
-app.get('/:dataset/:model.:suffix', async (req, res) => {
-  const f = {
-    csv: csv,
-    html: html,
-    json: json,
-    jsonld: jsonld
-    // trig, nq, turle
-  }[req.params.suffix]
-
-  if (f) {
-    f(req, res)
+// allow users to provide the suffix instead of doing con-neg
+app.get('/:dataset/:shape.:format', (req, res) => {
+  if (['html', ''].contains(req.params.format)) {
+    req.params.return = 'html'
   } else {
-    res.status(406).send('File Format Unknown')
+    req.params.return = 'raw'
   }
+  return page(req, res)
 })
 
 // but also support conneg, thanks
-app.get('/:dataset/:model', async (req, res) => {
+app.get('/:dataset/:shape', async (req, res) => {
+  if (!datasets.get(req.params.dataset)) {
+    console.log('404', req.url)
+    return res.status(404).send('' + H`No such dataset, "${req.params.dataset}"`)
+  }
+  function html (req, res) { return page(req, res) }
   res.format({
-    html: html,
-    json: json,
-    'application/json+ld': jsonld,
+    html,
+    json: (req, res) => { req.params.format='json'; return page(req, res) },
+    'application/json+ld': (req, res) => {
+      req.params.type='application/json+ld'
+      req.params.format='json'
+      return page(req, res)
+    },
     default: html
   })
 })
 
-function quadModel (req) {
-  if (req.params.model && req.params.model.match(/^quads?|graphs?/)) {
-    const dsname = req.params.dataset
-    debug('dsname', dsname)
-    const ds = datasets.get(dsname)
-    debug('ds', ds)
-    const quads = ds.getQuads()
-    debug('quads', quads)
-    return quads
-  }
-  return null
-}
-
-function csv (req, res) {
-  res.set('Content-Type', 'text/csv')
-  const quads = quadModel(req)
-  if (quads) {
-    const data = []
-    data.push(['Subject', 'Property', 'Value', 'Graph'])
-    for (const q of quads) {
-      let val = q.object
-      debug('val', val.datatype, val.value)
-      if (val.datatype.id === 'http://www.w3.org/2001/XMLSchema#integer') {
-        val = parseInt(val.value)
-      } else {
-        val = val.id
-      }
-      data.push([q.subject.id, q.predicate.id, val, q.graph.id])
-    }
-    res.send(CSV.stringify(data))
-    return
-  }
-  res.send('Model not implemented')
-}
-
-function html (req, res) {
-  debug('you asked for HTML, params=' + JSON.stringify(req.params))
-  const quads = quadModel(req)
-  if (quads) {
-    // use data tables!!
-    const data = []
-    data.push(['Subject', 'Property', 'Value', 'Graph'])
-    for (const q of quads) {
-      let val = q.object
-      debug('val', val.datatype, val.value)
-      if (val.datatype && val.datatype.id === 'http://www.w3.org/2001/XMLSchema#integer') {
-        val = parseInt(val.value)
-      } else {
-        val = val.id
-      }
-      data.push([q.subject.id, q.predicate.id, val, q.graph.id])
-    }
-
-    page(req, res, CSV.stringify(data))
-    return
-  }
-  res.send('Not implemented')
-}
 
 /*
   Given the request parameters, extract the data that we'll end up
   showing in some format on some kind of page 
 
-  p.dataset
-  p.shape = quads | observations
-  p.format = csv | json | ...
-  p.return = html | data
-  p.type = 'application/json+ld'    as an override if you want
-  p.properties
 */
 function extract (p) {
   const dsname = p.dataset
@@ -215,11 +162,16 @@ function page (req, res) {
 
   const data = extract(p)
 
-  if (! p.format) p.format = 'json'
-  let stringified = {
+  if (!p.format) p.format = 'json'
+  const stringifier = {
     csv: () => CSV.stringify(tablify(data)),
     json: () => JSON.stringify(data, null, 2)
-  }[p.format]()
+  }[p.format]
+  if (!stringifier) {
+    return res.status(406).send('' + H`Unimplemented data format "${p.format}"`)
+  }
+  const stringified = stringifier()
+
 
   if (p.return === 'raw') {
     let type = p.type
@@ -230,7 +182,7 @@ function page (req, res) {
       }[p.format]
     }
     res.set('Content-Type', type)
-    res.send(stringified)
+    return res.send(stringified)
   }
   
   let title = 'signal data server'
@@ -251,18 +203,37 @@ function page (req, res) {
 
   function url (pChanges) {
     const pTarget = Object.assign({}, p, pChanges)
-    return H.safe('/?' + querystring.stringify(pTarget))
+    return H.safe(siteprefix + '/?' + querystring.stringify(pTarget))
   }
   
   const nav = H`
 <ul class="nav">
-  <li>Model: <a href="quads">quads</a> | <a href="rows">rows</a></li>
+  <li>Shape: <a href="${url({shape: 'quads'})}">quads</a> | <a href="${url({shape: 'obs'})}">observations</a></li>
   <li>Format: <a href="${url({format: 'table'})}">table</a> | <a href="${url({format: 'csv'})}">csv</a> | <a href="${url({format: 'json'})}">json</a></li>
   <li>Actions: <a href="${url({return: 'raw'})}">download</a></li></ul>
 `
   // pop-out as action?   if ?framed=true
-  
-  res.send( /* NO H, ONLY TRUSTED DATA */`<!DOCTYPE html>
+
+  let upperNav
+  if (p.framed) {
+    upperNav = H`<div style="float: right"><a href="${url()}" target="_blank">New Tab</a></div>`
+  } else {
+    const buf = []
+    for (const [key, value] of datasets) {
+      if (buf.length <= 0) {
+        buf.push(H`<a href="${url({dataset: key})}">${key}</a>`)
+      } else {
+        buf.push(H`<a href="${siteprefix}/_list"><i>(more)</i></a>`)
+        break
+      }
+    }
+
+    upperNav = H`<ul class="nav" style="margin-bottom: 0.9em; margin-top: -1.2em">
+       <li><a href="/">Home</a></li>
+       <li>Datasets: ${H.safe(buf.join(' | '))}</li>
+       <li><a href="/static/about">about</a></li></ul>`
+  }
+  return res.send( /* NO H, ONLY TRUSTED DATA */`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -272,6 +243,7 @@ function page (req, res) {
 </head>
 <body>
   <div class="header">
+    ${upperNav}
     <h2>${dataset}</h2>
     ${nav}
   </div>
@@ -283,37 +255,5 @@ function page (req, res) {
 // the difference between json and jsonld is ONLY what media-type we
 // reply with.  The problem is that JSON stacks often can't handle the
 // +ld.  Like firefox's JSON mode!
-
-function json (req, res) {
-  res.set('Content-Type', 'application/json')
-  jsonCommon(req, res)
-}
-
-function jsonld (req, res) {
-  res.set('Content-Type', 'application/json+ld')
-  jsonCommon(req, res)
-}
-
-function jsonCommon (req, res) {
-  const quads = quadModel(req)
-  if (quads) {
-    // use data tables!!
-    const data = []
-    data.push(['Subject', 'Property', 'Value', 'Graph'])
-    for (const q of quads) {
-      let val = q.object
-      debug('val', val.datatype, val.value)
-      if (val.datatype.id === 'http://www.w3.org/2001/XMLSchema#integer') {
-        val = parseInt(val.value)
-      } else {
-        val = val.id
-      }
-      data.push([q.subject.id, q.predicate.id, val, q.graph.id])
-    }
-    res.send(data)
-    return
-  }
-  res.send(req.params)
-}
 
 start()
