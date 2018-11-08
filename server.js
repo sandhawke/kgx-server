@@ -6,8 +6,10 @@ We merge req.params and req.query into p.  These are the values we look for:
   p.shape = quads | obs
   p.format = csv | json | ...
   p.return = html | data
+  ---
   p.type = 'application/json+ld'    as an override if you want
-  p.properties
+  p.properties = list of properties to restrict view to  [BROKEN]
+  p.framed = set to truthy in an iframe for a few differences
 
 */
 
@@ -64,7 +66,7 @@ app.get('/:dataset', async (req, res) => {
 
 // allow users to provide the suffix instead of doing con-neg
 app.get('/:dataset/:shape.:format', (req, res) => {
-  if (['html', ''].contains(req.params.format)) {
+  if (['html', ''].includes(req.params.format)) {
     req.params.return = 'html'
   } else {
     req.params.return = 'raw'
@@ -163,6 +165,8 @@ function page (req, res) {
   const data = extract(p)
 
   if (!p.format) p.format = 'json'
+  if (!p.shape) p.shape = 'quads'
+  
   const stringifier = {
     csv: () => CSV.stringify(tablify(data)),
     json: () => JSON.stringify(data, null, 2)
@@ -202,8 +206,26 @@ function page (req, res) {
   }
 
   function url (pChanges) {
-    const pTarget = Object.assign({}, p, pChanges)
-    return H.safe(siteprefix + '/?' + querystring.stringify(pTarget))
+    const pp = Object.assign({}, p, pChanges)
+    debug('url for', p, pChanges)
+    let path = ''
+    // pull out dataset, shape, format, and return
+    if (pp.dataset && pp.shape && pp.format) {
+      if (pp.return === 'raw') {
+        path = H`${pp.dataset}/${pp.shape}.${pp.format}`
+        delete pp.format
+      } else {
+        path = H`${pp.dataset}/${pp.shape}`
+      }
+      delete pp.dataset
+      delete pp.shape
+      delete pp.return
+    }
+    let q = '?' + querystring.stringify(pp)
+    if (q === '?') q = ''
+    const u = H.safe(siteprefix + '/' + path + q)
+    debug('url constructed', u)
+    return u
   }
   
   const nav = H`
@@ -220,7 +242,7 @@ function page (req, res) {
   } else {
     const buf = []
     for (const [key, value] of datasets) {
-      if (buf.length <= 0) {
+      if (buf.length <= 5) {
         buf.push(H`<a href="${url({dataset: key})}">${key}</a>`)
       } else {
         buf.push(H`<a href="${siteprefix}/_list"><i>(more)</i></a>`)
