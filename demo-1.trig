@@ -1,0 +1,9 @@
+PREFIX : <https://example.org/>
+:s1 :p1 1.
+:s2 :p2 2.
+:s3 :p3 3.
+
+:g1 {
+:s1 :p1 10. 
+:s2 :p2 20.
+}
