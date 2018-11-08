@@ -3,6 +3,7 @@ const express = require('express')
 const H = require('escape-html-template-tag') // H.safe( ) if needed
 const debug = require('debug')('signal-data-server')
 const CSV = require('csv-string')
+const querystring = require('querystring')
 
 const datasets = new Map()
 
@@ -30,6 +31,9 @@ app.use('/static', express.static('static', {
 }))
 
 app.get('/', async (req, res) => {
+  if (req.query.dataset) {
+    return page(req, res)
+  }
   const buf = []
   buf.push(H`<p>Datasets:</p><ol>`)
   for (const [key, value] of datasets) {
@@ -121,7 +125,7 @@ function html (req, res) {
     for (const q of quads) {
       let val = q.object
       debug('val', val.datatype, val.value)
-      if (val.datatype.id === 'http://www.w3.org/2001/XMLSchema#integer') {
+      if (val.datatype && val.datatype.id === 'http://www.w3.org/2001/XMLSchema#integer') {
         val = parseInt(val.value)
       } else {
         val = val.id
@@ -135,8 +139,100 @@ function html (req, res) {
   res.send('Not implemented')
 }
 
-function page (req, res, body) {
-  const p = req.params
+/*
+  Given the request parameters, extract the data that we'll end up
+  showing in some format on some kind of page 
+
+  p.dataset
+  p.shape = quads | observations
+  p.format = csv | json | ...
+  p.return = html | data
+  p.type = 'application/json+ld'    as an override if you want
+  p.properties
+*/
+function extract (p) {
+  const dsname = p.dataset
+
+  const ds = datasets.get(dsname)
+  const quads = ds.getQuads()
+
+  // maybe turn into observations
+
+  return quads
+}
+
+function narrow (properties, quads) {
+  const out = []
+  let use
+  for (const q of quads) {
+    if (quads.graph === rdfkb.DefaultGraph) {
+      use = true
+    } else {
+      let match = q.property.id.match(/(\w+)$/)
+      if (match) {
+        const tail = match[0]
+        if (properties.includes(tail)) {
+          use = true
+        } else {
+          use = false
+        }
+      } else {
+        use = true
+      }
+    }
+    if (use) out.push(q)
+  }
+  return out
+}
+
+function tablify (quads) {
+  const data = []
+  // data.push(['Subject', 'Property', 'Value', 'Graph'])
+  for (const q of quads) {
+    let val = q.object
+    debug('val', val.datatype, val.value)
+    // this is a different operation, like ... makeTermsPresentable
+    if (val.datatype && val.datatype.id === 'http://www.w3.org/2001/XMLSchema#integer') {
+      val = parseInt(val.value)
+    } else {
+      val = val.id
+    }
+    data.push([q.subject.id, q.predicate.id, val, q.graph.id])
+  }
+  return data
+}
+
+function recognizeObservations (quads) {
+  const data = []
+  
+  return data
+}
+
+function page (req, res) {
+  const p = Object.assign({}, req.params, req.query)
+  
+  console.log('PARAMS', p)
+
+  const data = extract(p)
+
+  if (! p.format) p.format = 'json'
+  let stringified = {
+    csv: () => CSV.stringify(tablify(data)),
+    json: () => JSON.stringify(data, null, 2)
+  }[p.format]()
+
+  if (p.return === 'raw') {
+    let type = p.type
+    if (!type) {
+      type = {
+        csv: 'text/csv',
+        json: 'application/json'
+      }[p.format]
+    }
+    res.set('Content-Type', type)
+    res.send(stringified)
+  }
+  
   let title = 'signal data server'
 
   let dataset = H`${p.dataset}`
@@ -149,15 +245,20 @@ function page (req, res, body) {
   const titles = kb.getObjects(null, kb.namedNode('https://example.org/title'), kb.defaultGraph())
   console.log('titles', titles)
   if (titles.length > 0) {
-    dataset += H` "${titles[0].value}"`
+    dataset = H`${titles[0].value} (${dataset})`
     title += H` "${titles[0].value}"`
+  }
+
+  function url (pChanges) {
+    const pTarget = Object.assign({}, p, pChanges)
+    return H.safe('/?' + querystring.stringify(pTarget))
   }
   
   const nav = H`
 <ul class="nav">
   <li>Model: <a href="quads">quads</a> | <a href="rows">rows</a></li>
-  <li>Format: <a href="./${p.model}.html">table</a> | <a href="./${p.model}.csv">csv</a> | <a href="./${p.model}.json">json</a></li>
-  <li>Actions: <a href="@@@">download</a></li></ul>
+  <li>Format: <a href="${url({format: 'table'})}">table</a> | <a href="${url({format: 'csv'})}">csv</a> | <a href="${url({format: 'json'})}">json</a></li>
+  <li>Actions: <a href="${url({return: 'raw'})}">download</a></li></ul>
 `
   // pop-out as action?   if ?framed=true
   
@@ -174,7 +275,7 @@ function page (req, res, body) {
     <h2>${dataset}</h2>
     ${nav}
   </div>
-  <div class="databox">${body}</div>
+  <div class="databox">${stringified}</div>
 </body></html>
 `)
 }
