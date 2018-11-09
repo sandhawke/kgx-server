@@ -21,10 +21,12 @@ const CSV = require('csv-string')
 const querystring = require('querystring')
 
 const datasets = new Map()
-
+rdfkb.defaultns.cred = 'http://www.w3.org/ns/credweb#'
+  
 const app = express()
 const port = 5511
-const siteprefix = ''
+const siteprefix = 'http://localhost:5511'
+
 let status = 'Loading datasets'
 
 async function start () {
@@ -34,7 +36,14 @@ async function start () {
   for (const name of ['demo-1', 'demo-2' /*, 'zhang18' */ ]) {
     const kb = rdfkb.create()
     datasets.set(name, kb)
-    await kb.aload(name + '.trig')
+
+    if (true) {
+      await kb.aload(`${name}.trig`, { baseIRI: siteprefix + '/static/' + name })
+    } else {
+      // cute, but ldfetch isn't getting the base right
+      const url = siteprefix + '/static/' + name
+      await kb.aload(url)
+    }
   }
   status = 'Ready'
 }
@@ -42,7 +51,10 @@ async function start () {
 // app.get(/^\/([^/]*)\/?/, async (req, res) => {
 
 app.use('/static', express.static('static', {
-  extensions: ['html']
+  extensions: ['html', 'trig', 'nq', 'ttl', 'json', 'jsonld'],
+  setHeaders: function (res, path, stat) {
+    if (path.endsWith('.trig')) res.set('Content-Type', 'application/trig')
+  }
 }))
 
 app.get('/', async (req, res) => {
@@ -197,8 +209,8 @@ function page (req, res) {
   // WHATS MY URL?
   // How do I say dc:title?
   // Where is the last_modified to be found?  In the outer quadstore, someday.
-  console.log(null, kb.namedNode('https://example.org/title'), kb.defaultGraph())
-  const titles = kb.getObjects(null, kb.namedNode('https://example.org/title'), kb.defaultGraph())
+  console.log(null, kb.ns.dc.title, kb.defaultGraph())
+  const titles = kb.getObjects(null, kb.ns.dc.title, kb.defaultGraph())
   console.log('titles', titles)
   if (titles.length > 0) {
     dataset = H`${titles[0].value} (${dataset})`
