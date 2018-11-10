@@ -1,7 +1,8 @@
 
 QuadSite is simple server-side browser for RDF data.  You set it up
 with some RDF datasets (triples and/or quads), and it lets users poke
-at them a little.  
+at them a little.  The main goal is to make medium-complexity RDF
+datasets be easily used by coders without knowing about RDF.
 
 Status: Very new and untested.  So far only used for credibility
 data. The plan is to make it flexible about handling all sorts of
