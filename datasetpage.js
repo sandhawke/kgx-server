@@ -75,20 +75,17 @@ function datasetpage (req, res) {
   // need to set req.params so req.stateURL can see these values :-(
   // maybe better to do these as redirects?
   if (!p.shape) {
-    res.redirect(req.stateURL({ shape: 'rdf' }))
-    return
+    // res.redirect(req.stateURL({ shape: 'rdf' }))
+    p.shape = 'rdf'
+    req.param.shape = p.shape
   }
   if (!p.format) {
-    res.redirect(req.stateURL({ format: 'json' }))
-    return
+    // res.redirect(req.stateURL({ format: 'json' }))
+    p.format = 'json'
+    req.param.format = 'json'
   }
-  /*
-    instead of
-  if (!p.format) { p.format = 'json'; req.params.format = p.format }
-  if (!p.shape) { p.shape = 'rdf'; req.params.shape = p.shape }
-  */
 
-  let rdfdata = extract(req.siteconfig.datasets, p.dataset)
+  let rdfdata = extract(req.appmgr.datasets, p.dataset)
 
   let data = rdfdata
   if (p.shape === 'quads') {
@@ -132,7 +129,7 @@ function datasetpage (req, res) {
 
   let h1 = H`${p.dataset}`
 
-  const kb = req.siteconfig.datasets.get(p.dataset)
+  const kb = req.appmgr.datasets.get(p.dataset)
   // WHATS MY URL?
   // How do I say dc:title?
   // Where is the last_modified to be found?  In the outer quadstore, someday.

@@ -5,6 +5,21 @@ const querystring = require('querystring')
 const sitepage = require('./sitepage')
 const datasetpage = require('./datasetpage')
 
+/*
+
+  We merge req.params and req.query into p.  These are the values we look for:
+
+  p.dataset = a key into datasets map
+  p.shape = rdf | quads | obs
+  p.format = json | csv ...
+  p.return = raw    (or omit)
+  ---
+  p.type = 'application/json+ld'    as an override if you want
+  p.properties = list of properties to restrict view to  [BROKEN]
+  p.framed = set to truthy in an iframe for a few differences
+
+*/
+
 const router = express.Router()
 
 /*
@@ -31,10 +46,13 @@ router.use('/', (req, res, next) => {
       delete pp.dataset
       delete pp.shape
       delete pp.return
+    } else if (pp.dataset) {
+      path = H`${pp.dataset}`
+      delete pp.dataset
     }
     let q = '?' + querystring.stringify(pp)
     if (q === '?') q = ''
-    const u = H.safe(req.siteconfig.prefix + '/' + path + q)
+    const u = H.safe(req.appmgr.siteurl + '/' + path + q)
     debug('url constructed', u)
     return u
   }
@@ -65,7 +83,7 @@ router.get('/', async (req, res) => {
 router.get('/_list/', async (req, res) => {
   const buf = []
   buf.push(H`<p>Datasets:</p><ol>`)
-  for (const [key] of req.siteconfig.datasets) {
+  for (const [key] of req.appmgr.datasets) {
     buf.push(H`<li><a href="./${key}">${key}</a></li>`)
   }
   buf.push(H`</ol>`)
@@ -73,7 +91,8 @@ router.get('/_list/', async (req, res) => {
 })
 
 router.get('/:dataset', async (req, res) => {
-  res.redirect('/' + req.params.dataset + '/quads')
+  // res.redirect('/' + req.params.dataset + '/quads')
+  return datasetpage(req, res)
 })
 
 // allow users to provide the suffix instead of doing con-neg
@@ -88,7 +107,7 @@ router.get('/:dataset/:shape.:format', (req, res) => {
 
 // but also support conneg, thanks
 router.get('/:dataset/:shape', async (req, res) => {
-  if (!req.siteconfig.datasets.get(req.params.dataset)) {
+  if (!req.appmgr.datasets.get(req.params.dataset)) {
     debug('404', req.url)
     res.status(404).send('' + H`No such dataset, "${req.params.dataset}"`)
     return

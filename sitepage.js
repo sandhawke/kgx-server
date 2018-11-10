@@ -1,18 +1,12 @@
-/*
-  Kind of an odd mix of general stuff for any website and specific
-  stuff for this site.
-*/
+
 // const debug = require('debug')('signal-data-server')
 const H = require('escape-html-template-tag') // H.safe( ) if needed
 
-// module is a function you need to apply to the siteconfig to get the
-// sitepage function to use
 
 function sitepage (config) {
   return (req, res) => {
     const p = Object.assign({}, req.params, req.query)
-    const appmgr = req.siteconfig
-
+    const appmgr = req.appmgr
     const url = req.stateURL
 
     // Not sure this belongs here either...
@@ -25,7 +19,7 @@ function sitepage (config) {
         if (buf.length <= 5) {
           buf.push(H`<a href="${url({ dataset: key })}">${key}</a>`)
         } else {
-          buf.push(H`<a href="${appmgr.prefix}/_list"><i>(more)</i></a>`)
+          buf.push(H`<a href="${appmgr.siteurl}/_list"><i>(more)</i></a>`)
           break
         }
       }
@@ -33,8 +27,9 @@ function sitepage (config) {
       upperNav = H`<ul class="nav" style="margin-bottom: 0.9em; margin-top: -1.2em">
        <li><a href="/">Home</a></li>
        <li>Datasets: ${H.safe(buf.join(' | '))}</li>
-       <li><a href="about">About</a></li></ul>`
+       <li><a href="${req.appmgr.siteurl + '/about'}">About</a></li></ul>`
     }
+    console.log('siteurl = %j', req.appmgr.siteurl)
     req.stateURL = url
 
     /*
@@ -51,7 +46,7 @@ function sitepage (config) {
       while (typeof val === 'function') {
         val = val(req)
       }
-      if (val === 'undefined' || val === 'null') return ''
+      if (val === undefined || val === null) return ''
       if (typeof val === 'string') return val
       if (Array.isArray(val)) {
         return val.map(fill).join('')
@@ -64,19 +59,18 @@ function sitepage (config) {
 <html>
 <head>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="${appmgr.prefix}/static/reset.css">
-  <link rel="stylesheet" href="${appmgr.prefix}/static/main.css">
+  <link rel="stylesheet" href="${appmgr.siteurl}/static/reset.css">
+  <link rel="stylesheet" href="${appmgr.siteurl}/static/main.css">
   <title>${fill(config.title)}</title>
 </head>
 <body>
   <div class="header">
     ${fill(upperNav)}
-    <h2>${fill(config.h1)}</h2>
+    <h2>${fill(config.h1 || config.title)}</h2>
     ${fill(config.nav)}</div>
   ${fill(config.mainbody)}</body></html>
 `)
   }
 }
-
 
 module.exports = sitepage

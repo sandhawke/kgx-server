@@ -1,7 +1,6 @@
-const server = require('./server')
+const AppMgr = require('./appmgr')
 
-const conf = {}
-
-server.create(conf).then(() => {
-  console.log(`Server listening at ${conf.prefix}`)
+const m = new AppMgr()
+m.start().then(() => {
+  console.log(`# Server listening at ${m.siteurl}`)
 })
