@@ -16,12 +16,13 @@
 
 const rdfkb = require('rdfkb')
 const express = require('express')
+const logger = require('morgan')
 const H = require('escape-html-template-tag') // H.safe( ) if needed
 const debug = require('debug')('signal-data-server')
-const querystring = require('querystring')
 const unshapeObserver = require('./unshape-observer')
 const sitepageModule = require('./sitepage')
 const formats = require('./formats')
+const routes = require('./routes')
 
 module.exports.create = create
 
@@ -61,7 +62,7 @@ function create (siteconfig) {
       // could move this to after the data is loaded if we want, but
       // eventually we'll be doing dynamic loading, I expect
       siteconfig.server = app.listen(siteconfig.port, arg => {
-        console.log(`server started`)
+        debug(`server started`)
         resolve(arg)
       })
 
@@ -78,7 +79,12 @@ function create (siteconfig) {
       }
     }
 
-    // app.get(/^\/([^/]*)\/?/, async (req, res) => {
+    app.use(logger('dev'))
+    app.use('/', (req, res, next) => {
+      req.siteconfig = siteconfig
+      next()
+    })
+    app.use('/', routes)
 
     app.use('/static', express.static('static', {
       extensions: ['html', 'trig', 'nq', 'ttl', 'json', 'jsonld'],
@@ -124,7 +130,7 @@ function create (siteconfig) {
     // but also support conneg, thanks
     app.get('/:dataset/:shape', async (req, res) => {
       if (!siteconfig.datasets.get(req.params.dataset)) {
-        console.log('404', req.url)
+        debug('404', req.url)
         res.status(404).send('' + H`No such dataset, "${req.params.dataset}"`)
         return
       }
@@ -209,12 +215,15 @@ function create (siteconfig) {
     function page (req, res) {
       const p = Object.assign({}, req.params, req.query)
 
-      console.log('PARAMS', p)
+      debug('PARAMS', p)
+
+      console.log(`req.stateURL = ${req.stateURL}`)
 
       let data = extract(p)
 
-      if (!p.format) p.format = 'json'
-      if (!p.shape) p.shape = 'quads'
+      // need to set req.params so req.stateURL can see these values :-(
+      if (!p.format) { p.format = 'json'; req.params.format = 'json' }
+      if (!p.shape) { p.shape = 'quads'; req.params.shape = 'quads' }
 
       if (p.shape === 'obs') data = unshapeObserver.unshape(data)
 
@@ -247,14 +256,15 @@ function create (siteconfig) {
       // WHATS MY URL?
       // How do I say dc:title?
       // Where is the last_modified to be found?  In the outer quadstore, someday.
-      console.log(null, kb.ns.dc.title, kb.defaultGraph())
       const titles = kb.getObjects(null, kb.ns.dc.title, kb.defaultGraph())
-      console.log('titles', titles)
+      debug('titles', titles)
       if (titles.length > 0) {
         h1 = H`${titles[0].value} (${h1}, Licence Not Found)`
         title += H` "${titles[0].value}"`
       }
 
+      const url = req.stateURL
+      /*
       function url (pChanges) {
         const pp = Object.assign({}, p, pChanges)
         debug('url for', p, pChanges)
@@ -277,6 +287,7 @@ function create (siteconfig) {
         debug('url constructed', u)
         return u
       }
+      */
 
       const nav = H`
 <ul class="nav">

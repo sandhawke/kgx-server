@@ -2,8 +2,7 @@
   Kind of an odd mix of general stuff for any website and specific
   stuff for this site.
 */
-const querystring = require('querystring')
-const debug = require('debug')('signal-data-server')
+// const debug = require('debug')('signal-data-server')
 const H = require('escape-html-template-tag') // H.safe( ) if needed
 
 // module is a function you need to apply to the siteconfig to get the
@@ -14,29 +13,7 @@ module.exports = (siteconfig) => {
     return (req, res) => {
       const p = Object.assign({}, req.params, req.query)
 
-      // THIS function should maybe be with the routes?
-      function url (pChanges) {
-        const pp = Object.assign({}, p, pChanges)
-        debug('url for', p, pChanges)
-        let path = ''
-        // pull out dataset, shape, format, and return
-        if (pp.dataset && pp.shape && pp.format) {
-          if (pp.return === 'raw') {
-            path = H`${pp.dataset}/${pp.shape}.${pp.format}`
-            delete pp.format
-          } else {
-            path = H`${pp.dataset}/${pp.shape}`
-          }
-          delete pp.dataset
-          delete pp.shape
-          delete pp.return
-        }
-        let q = '?' + querystring.stringify(pp)
-        if (q === '?') q = ''
-        const u = H.safe(siteconfig.prefix + '/' + path + q)
-        debug('url constructed', u)
-        return u
-      }
+      const url = req.stateURL
 
       // Not sure this belongs here either...
       let upperNav
