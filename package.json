@@ -4,7 +4,7 @@
   "description": "Web server offering views on signal data",
   "main": "start-server.js",
   "scripts": {
-    "start": "start-server.js",
+    "start": "node start-server.js",
     "test": "standard && tap --cov test*.js test/*.js"
   },
   "repository": {

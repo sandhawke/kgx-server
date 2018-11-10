@@ -3,6 +3,7 @@ Is this credibility data specific?  Its 99% generic.  But I don't want
 to worry right now about where that line should go.
 
 okay generic names: rdfhub, quadserver, quadbrowser, ...
+   datasite?
 
 Features to add:
 
