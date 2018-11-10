@@ -1,7 +1,7 @@
 {
-  "name": "signal-data-server",
+  "name": "quadsite",
   "version": "0.0.1",
-  "description": "Web server offering views on signal data",
+  "description": "Web application offering simple views on RDF data",
   "main": "start-server.js",
   "scripts": {
     "start": "node start-server.js",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/sandhawke/signal-data-server.git"
+    "url": "git://github.com/sandhawke/quadsite.git"
   },
   "author": "Sandro Hawke (http://hawke.org/sandro)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sandhawke/signal-data-server/issues"
+    "url": "https://github.com/sandhawke/quadsite/issues"
   },
-  "homepage": "https://github.com/sandhawke/signal-data-server#readme",
+  "homepage": "https://github.com/sandhawke/quadsite#readme",
   "dependencies": {
     "csv-string": "^3.1.5",
     "escape-html-template-tag": "^1.1.0",

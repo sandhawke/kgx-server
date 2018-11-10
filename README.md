@@ -1,13 +1,22 @@
 
-Is this credibility data specific?  Its 99% generic.  But I don't want
-to worry right now about where that line should go.
+QuadSite is simple server-side browser for RDF data.  You set it up
+with some RDF datasets (triples and/or quads), and it lets users poke
+at them a little.  
 
-okay generic names: rdfhub, quadserver, quadbrowser, ...
-   datasite?
+Status: Very new and untested.  So far only used for credibility
+data. The plan is to make it flexible about handling all sorts of
+shapes/schemas, someday, maybe.
 
-Features to add:
+Some possible features someday:
 
-* submission form which adds a URL to the live KB and startup file,
-  with the understanding that it goes away soonish if it doesn't have
-  a CC license triple in it.
-
+ * Dynamic loading of sites from a URL, maybe making them public if
+   they have a CC license
+ * Graph viewer
+ * Tree viewer (like tabulator)
+ * Let the data point us to new shapes and formats
+ * Social features (but those should probably be in the data)
+ * Edit, with write back, if you have access
+ * Fast-update sync, maybe using websub, esp between two instalations
+ * Use a SPARQL engine for more scaling of the data
+ * Operations across datasets, probably using quad-nesting
+ 
