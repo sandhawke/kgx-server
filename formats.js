@@ -17,7 +17,9 @@ formats.push({
 
 formats.push({
   name: 'csv',
-  stringifier: CSV.stringify,
+  stringifier: rows => {
+    return CSV.stringify([rows.columnLabels].concat(rows))
+  },
   type: 'text/csv',
   applicable: x => x.isRows
 })

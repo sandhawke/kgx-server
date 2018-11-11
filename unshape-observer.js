@@ -54,7 +54,7 @@ api.unshape = (quads) => {
     return [user, subject, property, value, graph, postTime, startTime, endTime]
   }
   out.columnLabels = ['Observer', 'Subject', 'Property', 'Value Observed', 'Source', 'Time Posted', 'Time Started', 'Time Ended']
-  api.forEach(kb, kb.DG, row => out.push(row))
+  api.forEach(kb, kb.DG, row => out.push(tuplify(row)))
   console.log('FOUND SHAPES', out)
   out.isRows = true
   return out

@@ -78,6 +78,7 @@ function datasetpage (req, res) {
   debug('shape name %j got shape %j', p.shape, shape)
   if (shape) {
     data = shape.fromRDF(rdfdata)
+    if (!Array.isArray(data)) throw Error('non-array returned from .fromRDF for ', p.shape)
   } else {
     throw Error('internal logic')
   }
@@ -89,6 +90,24 @@ function datasetpage (req, res) {
   const format = formats[p.format]
   if (format) {
     if (format.applicable(data)) {
+
+      // apply valuemap
+      if (data.isRows) {
+        function present (v) {
+          // if it's a user, we want the label???
+          if (!v) return v
+          if (v.termType === 'Literal'
+              && v.datatype.value === 'http://www.w3.org/2001/XMLSchema#date') {
+            return (new Date(v.value)).toISOString()
+          }
+          return v.value
+        }
+        debug('mapping: data is %j', data)
+        // splice instead of resetting, because we have our isRows flag
+        // which is a stupid hack, and we should switch to a Table object
+        data.splice(0, data.length, ...(data.map(x => x.map(present))))
+      }
+      
       const stringifier = formats[p.format].stringifier
       if (stringifier) {
         stringified = stringifier(data)
