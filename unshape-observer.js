@@ -50,7 +50,12 @@ api.unshape = (quads) => {
   const kb = rdfkb.create()
   for (const q of quads) kb.addQuad(q)
   const out = []
+  function tuplify ({user, graph, postTime, startTime, endTime, subject, property, value}) {
+    return [user, subject, property, value, graph, postTime, startTime, endTime]
+  }
+  out.columnLabels = ['Observer', 'Subject', 'Property', 'Value Observed', 'Source', 'Time Posted', 'Time Started', 'Time Ended']
   api.forEach(kb, kb.DG, row => out.push(row))
   console.log('FOUND SHAPES', out)
+  out.isRows = true
   return out
 }

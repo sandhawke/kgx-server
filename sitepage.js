@@ -2,7 +2,6 @@
 // const debug = require('debug')('signal-data-server')
 const H = require('escape-html-template-tag') // H.safe( ) if needed
 
-
 function sitepage (config) {
   return (req, res) => {
     const p = Object.assign({}, req.params, req.query)
@@ -59,6 +58,7 @@ function sitepage (config) {
 <html>
 <head>
   <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
   <link rel="stylesheet" href="${appmgr.siteurl}/static/reset.css">
   <link rel="stylesheet" href="${appmgr.siteurl}/static/main.css">
   <title>${fill(config.title)}</title>

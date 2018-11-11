@@ -61,7 +61,7 @@ class AppMgr {
   }
 
   start () {
-    this.load()  // just start the loading async
+    this.load() // just start the loading async
     return new Promise((resolve, reject) => {
       const appmgr = this
 
