@@ -191,7 +191,7 @@ function datasetpage (req, res) {
     title,
     h1,
     nav,
-    mainbody: `<div class="databox">${stringified}</div>`
+    mainbody: H`<div class="databox">${stringified}</div>`
   }
   sitepage(config)(req, res)
 }
