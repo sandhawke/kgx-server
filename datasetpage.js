@@ -126,7 +126,7 @@ function datasetpage (req, res) {
   const titles = kb.getObjects(null, kb.ns.dc.title, kb.defaultGraph())
   debug('titles', titles)
   if (titles.length > 0) {
-    h1 = H`${titles[0].value} (${h1}, Licence Not Found)`
+    h1 = H`${titles[0].value} (${h1}, License Not Found)`
     title += H` "${titles[0].value}"`
   }
 

@@ -72,7 +72,8 @@ router.use('/static', express.static('static', {
 
 router.get('/about', sitepage({
   title: 'About this site',
-  mainbody: 'This is a site!'
+  mainbody: H`
+<p style="margin: 1em;">This is a <a href="https://github.com/sandhawke/quadsite">QuadSite</a> instance.  The site maintainer has not yet put any additional information here.</p>`
 }))
 
 router.get('/', async (req, res) => {
