@@ -1,5 +1,5 @@
 
-QuadSite is simple server-side browser for RDF data.  You set it up
+kgx-server is simple server-side browser for RDF data.  You set it up
 with some RDF datasets (triples and/or quads), and it lets users poke
 at them a little.  The main goal is to make medium-complexity RDF
 datasets be easily used by coders without knowing about RDF.
@@ -11,7 +11,7 @@ shapes/schemas, someday, maybe.
 Some possible features someday:
 
  * Dynamic loading of sites from a URL, maybe making them public if
-   they have a CC license
+   they have a suitable license
  * Graph viewer
  * Tree viewer (like tabulator)
  * Let the data point us to new shapes and formats
