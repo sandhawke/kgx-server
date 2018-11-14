@@ -13,19 +13,18 @@ formats.push({
   makeNodeStr: (kb, urlFunc) => {
     return v => {
       if (!v) return v
-      if (v.termType === 'Literal'
-          && (v.datatype.value === 'http://www.w3.org/2001/XMLSchema#date'
-              ||
+      if (v.termType === 'Literal' &&
+          (v.datatype.value === 'http://www.w3.org/2001/XMLSchema#date' ||
               v.datatype.value === 'http://www.w3.org/2001/XMLSchema#dateTimeStamp')) {
         return (new Date(v.value)).toISOString()
       }
-      
+
       if (v.termType === 'NamedNode') {
         let label = '...' + v.value.slice(-16)
         // need URL function, so this function need to be passed it!
         return H`<a href="${urlFunc(v.value)}">${label}</a>`
-    }
-    return v.value
+      }
+      return v.value
     }
   },
   stringifier: (data, nodestr = x => x) => {
@@ -79,19 +78,17 @@ formats.push({
 formats.push({
   name: 'turtle',
   stringifier: data => {
-    
     // this should be exposed from kgx -- but at the moment we don't
-    // have kb!    Get it from req?     
+    // have kb!    Get it from req?
     let out = 'n3 async error'
-    const writer = N3.Writer({ format: 'trig', prefixes: kgx.defaultns });
+    const writer = N3.Writer({ format: 'trig', prefixes: kgx.defaultns })
     for (const q of data) writer.addQuad(q)
-    writer.end((error, result) => { out = result })
+    writer.end((error, result) => { if (error) throw error; out = result })
     return out
   },
   type: 'text/turtle',
   applicable: x => x.isRDF
 })
-
 
 // Make formats addressible by name as well as number.  Sketchy, I know.
 for (const format of formats) {

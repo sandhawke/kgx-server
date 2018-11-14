@@ -21,7 +21,6 @@ function extract (datasets, datasetName) {
 function narrow (properties, quads) {
   const out = []
   const expr = RegExp(properties)
-  let use
   for (const q of quads) {
     if (q.predicate.value.match(expr)) {
       out.push(q)
@@ -60,7 +59,7 @@ function datasetpage (req, res) {
     rdfdata = narrow(p.properties, rdfdata)
     // SHOW RESTRICTION IN UI
   }
-  
+
   // apply shape
 
   let data
@@ -76,21 +75,20 @@ function datasetpage (req, res) {
   const kb = req.appmgr.datasets.get(p.dataset)
 
   // apply format
-  
+
   let stringified
   let ok = false
   const format = formats[p.format]
   if (format) {
     if (format.applicable(data)) {
-
       // The nodestr is a function to turn nodes into strings for this format.
       // We have this decoupled because we're expecting to have some UI around
       // this, like which linkstyle, which datastyle, etc.
-      
+
       let mknodestr = formats[p.format].makeNodeStr
       let nodestr
       if (mknodestr) {
-        nodestr = mknodestr(kb, x => req.stateURL({url: x}))
+        nodestr = mknodestr(kb, x => req.stateURL({ url: x }))
         console.log('nodestr=', nodestr)
       }
       const stringifier = formats[p.format].stringifier
@@ -137,7 +135,7 @@ function datasetpage (req, res) {
 
   const url = req.stateURL
 
-  /* 
+  /*
      return the HTML to use for the button-tab to choose this item,
      which is a "shape" or "format" (one of those words is the
      paramKey)
@@ -151,7 +149,7 @@ function datasetpage (req, res) {
       const link = url(stateChange)
       const text = item.label || item.name
       debug('generating button for a %s named %s, selected is %s',
-            paramKey, item.name, p[paramKey])
+        paramKey, item.name, p[paramKey])
       let out
       if (item.name === p[paramKey]) {
         out = H`<span class="selected">${text}</span>`
@@ -162,7 +160,7 @@ function datasetpage (req, res) {
       return out
     }
   }
-  
+
   const shapesHTML = shapes.filter(x => x.applicable(rdfdata)).map(button('shape')).join(' | ')
   const formatsHTML = formats.filter(x => x.applicable(data)).map(button('format')).join(' | ')
 
@@ -182,17 +180,18 @@ function datasetpage (req, res) {
   sitepage(config)(req, res)
 }
 
+/*
 // move this into kgx?
 function getLicense (self, kb) {
   return 'Not Checked'
-  
+
   const set = new Set()
   for (const rel of [
-    kb.ns.dct.license,  // pre http://dublincore.org/documents/dcmi-terms/
+    kb.ns.dct.license, // pre http://dublincore.org/documents/dcmi-terms/
     kb.ns.cc.license, // per https://www.w3.org/TR/xhtml-rdfa-primer
     kb.ns.sorg.license, // per https://schema.org/license
-    kb.ns.linkrel.license, 
-    kb.named('https://www.w3.org/1999/xhtml/vocab#license')  // per https://labs.creativecommons.org/2011/ccrel-guide/
+    kb.ns.linkrel.license,
+    kb.named('https://www.w3.org/1999/xhtml/vocab#license') // per https://labs.creativecommons.org/2011/ccrel-guide/
   ]) {
     kb.forObjects(obj => {
       console.log('found license', obj)
@@ -203,5 +202,6 @@ function getLicense (self, kb) {
   //
   return 'NOT FOUND'
 }
+*/
 
 module.exports = datasetpage

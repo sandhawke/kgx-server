@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Web application offering simple views on RDF data",
   "main": "appmgr.js",
-  "bin": "start-server.js"
+  "bin": "start-server.js",
   "scripts": {
     "start": "node start-server.js",
     "test": "standard && tap --cov test*.js test/*.js"

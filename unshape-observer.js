@@ -49,7 +49,7 @@ api.unshape = (quads) => {
   const kb = kgx.createKB()
   for (const q of quads) kb.addQuad(q)
   const out = []
-  function tuplify ({user, graph, postTime, startTime, endTime, subject, property, value}) {
+  function tuplify ({ user, graph, postTime, startTime, endTime, subject, property, value }) {
     return [user, subject, property, value, graph, postTime, startTime, endTime]
   }
   out.columnLabels = ['Observer', 'Subject', 'Property', 'Value Observed', 'Source', 'Time Posted', 'Time Started', 'Time Ended']

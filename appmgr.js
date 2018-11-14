@@ -38,7 +38,6 @@ class AppMgr {
       appmgr.siteurl = process.env.SITEURL
     }
 
-
     if (appmgr.app) throw Error('this is only a return value')
     if (appmgr.server) throw Error('this is only a return value')
 
@@ -86,16 +85,16 @@ class AppMgr {
   async load () {
     const appmgr = this
 
-    for (const name of ['demo-1', 'demo-2', 'zhang18']) { 
+    for (const name of ['demo-1', 'demo-2', 'zhang18']) {
       const kb = kgx.createKB()
       appmgr.datasets.set(name, kb)
 
-      await kb.aload(`${name}.trig`, { baseIRI: appmgr.siteurl + '/' + name + '#' })
+      await kb.load(`${name}.trig`, { baseIRI: appmgr.siteurl + '/' + name + '#' })
 
       // cute, but ldfetch isn't getting the base right yet   :-(
       // but yeah, this would be good.
       // const url = appmgr.siteurl + '/static/' + name
-      // await kb.aload(url)
+      // await kb.load(url)
     }
   }
 }

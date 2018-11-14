@@ -5,7 +5,7 @@ const unshape = require('./unshape-observer')
 
 test(t => {
   const kb = kgx.createKB()
-  kb.aload('demo-1.trig', { baseIRI: 'tag:hawke.org,2018:junk:' }).then(() => {
+  kb.load('demo-1.trig', { baseIRI: 'tag:hawke.org,2018:junk:' }).then(() => {
     const gr = kb.DG
     const out = []
     unshape.forEach(kb, gr, (shape) => {
