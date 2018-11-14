@@ -18,32 +18,17 @@ function extract (datasets, datasetName) {
   return rdf
 }
 
-/*
-  function narrow (properties, quads) {
+function narrow (properties, quads) {
   const out = []
+  const expr = RegExp(properties)
   let use
   for (const q of quads) {
-  if (quads.graph === rdfkb.DefaultGraph) {
-  use = true
-  } else {
-  let match = q.property.id.match(/(\w+)$/)
-  if (match) {
-  const tail = match[0]
-  if (properties.includes(tail)) {
-  use = true
-  } else {
-  use = false
-  }
-  } else {
-  use = true
-  }
-  }
-  if (use) out.push(q)
+    if (q.predicate.value.match(expr)) {
+      out.push(q)
+    }
   }
   return out
-  }
-
-*/
+}
 
 function datasetpage (req, res) {
   const p = Object.assign({}, req.params, req.query)
@@ -70,6 +55,11 @@ function datasetpage (req, res) {
     res.status(404).send(H`No dataset loaded called "${p.dataset}"`)
     return
   }
+
+  if (p.properties) {
+    rdfdata = narrow(p.properties, rdfdata)
+    // SHOW RESTRICTION IN UI
+  }
   
   // apply shape
 
@@ -82,7 +72,9 @@ function datasetpage (req, res) {
   } else {
     throw Error('internal logic')
   }
-  
+
+  const kb = req.appmgr.datasets.get(p.dataset)
+
   // apply format
   
   let stringified
@@ -91,26 +83,19 @@ function datasetpage (req, res) {
   if (format) {
     if (format.applicable(data)) {
 
-      // apply valuemap
-      if (data.isRows) {
-        function present (v) {
-          // if it's a user, we want the label???
-          if (!v) return v
-          if (v.termType === 'Literal'
-              && v.datatype.value === 'http://www.w3.org/2001/XMLSchema#date') {
-            return (new Date(v.value)).toISOString()
-          }
-          return v.value
-        }
-        debug('mapping: data is %j', data)
-        // splice instead of resetting, because we have our isRows flag
-        // which is a stupid hack, and we should switch to a Table object
-        data.splice(0, data.length, ...(data.map(x => x.map(present))))
-      }
+      // The nodestr is a function to turn nodes into strings for this format.
+      // We have this decoupled because we're expecting to have some UI around
+      // this, like which linkstyle, which datastyle, etc.
       
+      let mknodestr = formats[p.format].makeNodeStr
+      let nodestr
+      if (mknodestr) {
+        nodestr = mknodestr(kb, x => req.stateURL({url: x}))
+        console.log('nodestr=', nodestr)
+      }
       const stringifier = formats[p.format].stringifier
       if (stringifier) {
-        stringified = stringifier(data)
+        stringified = stringifier(data, nodestr)
         ok = true
       } else {
         stringified = 'Format is missing its stringifier'
@@ -138,16 +123,17 @@ function datasetpage (req, res) {
 
   let h1 = H`${p.dataset}`
 
-  const kb = req.appmgr.datasets.get(p.dataset)
-  // WHATS MY URL?
-  // How do I say dc:title?
-  // Where is the last_modified to be found?  In the outer quadstore, someday.
+  // Should be using a THIS to get the dataset title
   const titles = kb.getObjects(null, kb.ns.dc.title, kb.defaultGraph())
   debug('titles', titles)
   if (titles.length > 0) {
-    h1 = H`${titles[0].value} (${h1}, License Not Found)`
+    h1 = H`${titles[0].value} (${h1})`
     title += H` "${titles[0].value}"`
   }
+
+  // should be using a THIS
+  // const license = getLicense(null, kb)
+  h1 = h1 + H` (License not checked)`
 
   const url = req.stateURL
 
@@ -196,8 +182,26 @@ function datasetpage (req, res) {
   sitepage(config)(req, res)
 }
 
-// the difference between json and jsonld is ONLY what media-type we
-// reply with.  The problem is that JSON stacks often can't handle the
-// +ld.  Like firefox's JSON mode!
+// move this into kgx?
+function getLicense (self, kb) {
+  return 'Not Checked'
+  
+  const set = new Set()
+  for (const rel of [
+    kb.ns.dct.license,  // pre http://dublincore.org/documents/dcmi-terms/
+    kb.ns.cc.license, // per https://www.w3.org/TR/xhtml-rdfa-primer
+    kb.ns.sorg.license, // per https://schema.org/license
+    kb.ns.linkrel.license, 
+    kb.named('https://www.w3.org/1999/xhtml/vocab#license')  // per https://labs.creativecommons.org/2011/ccrel-guide/
+  ]) {
+    kb.forObjects(obj => {
+      console.log('found license', obj)
+      set.add(obj)
+    }, self, rel, kb.DG)
+  }
+  console.log('LICENSES:', set)
+  //
+  return 'NOT FOUND'
+}
 
 module.exports = datasetpage

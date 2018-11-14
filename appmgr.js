@@ -1,6 +1,6 @@
 const express = require('express')
 const logger = require('morgan')
-const rdfkb = require('rdfkb')
+const kgx = require('kgx')
 const debug = require('debug')('appmgr')
 const routes = require('./routes')
 
@@ -34,11 +34,15 @@ class AppMgr {
       if (appmgr.port === undefined) appmgr.port = 8080
       // if it's 0 it'll be changed when the listen completes
     }
+    if (!appmgr.siteurl) {
+      appmgr.siteurl = process.env.SITEURL
+    }
+
 
     if (appmgr.app) throw Error('this is only a return value')
     if (appmgr.server) throw Error('this is only a return value')
 
-    rdfkb.defaultns.cred = 'http://www.w3.org/ns/credweb#'
+    kgx.defaultns.cred = 'http://www.w3.org/ns/credweb#'
 
     const app = express()
     appmgr.app = app
@@ -82,11 +86,11 @@ class AppMgr {
   async load () {
     const appmgr = this
 
-    for (const name of ['demo-1', 'demo-2']) { // 'zhang18'
-      const kb = rdfkb.create()
+    for (const name of ['demo-1', 'demo-2', 'zhang18']) { 
+      const kb = kgx.createKB()
       appmgr.datasets.set(name, kb)
 
-      await kb.aload(`${name}.trig`, { baseIRI: appmgr.siteurl + '/static/' + name })
+      await kb.aload(`${name}.trig`, { baseIRI: appmgr.siteurl + '/' + name + '#' })
 
       // cute, but ldfetch isn't getting the base right yet   :-(
       // but yeah, this would be good.

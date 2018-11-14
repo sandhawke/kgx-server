@@ -1,5 +1,4 @@
-const rdfkb = require('rdfkb')
-rdfkb.defaultns.cred = 'http://www.w3.org/ns/credweb#'
+const kgx = require('kgx')
 
 const api = {}
 module.exports = api
@@ -13,7 +12,7 @@ module.exports = api
   WHERE
     GRAPH ?g { ?s ?p ?o }
     ?g :user ?u
-    ?g :postTime ?t
+    ?g dct:date ?t
     OPTIONAL ?g :startTime ?t0
     OPTIONAL ?g :endTime ?t1
 
@@ -30,7 +29,7 @@ api.forEach = (kb, homeGraph, cb) => {
     row.user = q.object
     row.graph = q.subject
 
-    row.postTime = kb.only(row.graph, kb.ns.cred.postTime, homeGraph)
+    row.postTime = kb.only(row.graph, kb.ns.dct.date, homeGraph)
     row.startTime = kb.only(row.graph, kb.ns.cred.startTime, homeGraph)
     row.endTime = kb.only(row.graph, kb.ns.cred.endTime, homeGraph)
 
@@ -47,7 +46,7 @@ api.forEach = (kb, homeGraph, cb) => {
 }
 
 api.unshape = (quads) => {
-  const kb = rdfkb.create()
+  const kb = kgx.createKB()
   for (const q of quads) kb.addQuad(q)
   const out = []
   function tuplify ({user, graph, postTime, startTime, endTime, subject, property, value}) {

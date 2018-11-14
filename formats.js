@@ -1,14 +1,34 @@
 const CSV = require('csv-string')
 const H = require('escape-html-template-tag')
 const N3 = require('n3')
-const rdfkb = require('rdfkb')
+const kgx = require('kgx')
 
 const formats = []
 module.exports = formats
 
+// stringifier (data, { kb, urlState, ... })
+
 formats.push({
   name: 'table',
-  stringifier: data => {
+  makeNodeStr: (kb, urlFunc) => {
+    return v => {
+      if (!v) return v
+      if (v.termType === 'Literal'
+          && (v.datatype.value === 'http://www.w3.org/2001/XMLSchema#date'
+              ||
+              v.datatype.value === 'http://www.w3.org/2001/XMLSchema#dateTimeStamp')) {
+        return (new Date(v.value)).toISOString()
+      }
+      
+      if (v.termType === 'NamedNode') {
+        let label = '...' + v.value.slice(-16)
+        // need URL function, so this function need to be passed it!
+        return H`<a href="${urlFunc(v.value)}">${label}</a>`
+    }
+    return v.value
+    }
+  },
+  stringifier: (data, nodestr = x => x) => {
     const out = []
     out.push('<table id="datatable" class="display">')
     out.push('  <thead>')
@@ -22,7 +42,7 @@ formats.push({
     for (const row of data) {
       out.push('    <tr>')
       for (const col of row) {
-        out.push(H`      <td>${col}</td>`)
+        out.push(H`      <td>${nodestr(col)}</td>`)
       }
       out.push('    </tr>')
     }
@@ -59,9 +79,11 @@ formats.push({
 formats.push({
   name: 'turtle',
   stringifier: data => {
-    // this should be exposed from rdfkb
+    
+    // this should be exposed from kgx -- but at the moment we don't
+    // have kb!    Get it from req?     
     let out = 'n3 async error'
-    const writer = N3.Writer({ format: 'trig', prefixes: rdfkb.defaultns });
+    const writer = N3.Writer({ format: 'trig', prefixes: kgx.defaultns });
     for (const q of data) writer.addQuad(q)
     writer.end((error, result) => { out = result })
     return out

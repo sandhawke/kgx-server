@@ -1,11 +1,10 @@
 const test = require('tape')
 const debug = require('debug')('test-unshape')
-const rdfkb = require('rdfkb')
+const kgx = require('kgx')
 const unshape = require('./unshape-observer')
-rdfkb.defaultns.cred = 'http://www.w3.org/ns/credweb#'
 
 test(t => {
-  const kb = rdfkb.create()
+  const kb = kgx.createKB()
   kb.aload('demo-1.trig', { baseIRI: 'tag:hawke.org,2018:junk:' }).then(() => {
     const gr = kb.DG
     const out = []

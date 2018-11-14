@@ -4,6 +4,7 @@ const H = require('escape-html-template-tag') // H.safe( ) if needed
 const querystring = require('querystring')
 const sitepage = require('./sitepage')
 const datasetpage = require('./datasetpage')
+const itemviewpage = require('./itemviewpage')
 
 /*
 
@@ -35,20 +36,24 @@ router.use('/', (req, res, next) => {
     const pp = Object.assign({}, p, pChanges)
     debug('url for', p, pChanges)
     let path = ''
-    // pull out dataset, shape, format, and return
-    if (pp.dataset && pp.shape && pp.format) {
-      if (pp.return === 'raw') {
-        path = H`${pp.dataset}/${pp.shape}.${pp.format}`
-        delete pp.format
-      } else {
-        path = H`${pp.dataset}/${pp.shape}`
+    if (pp.url) {
+      path = 'itemview'
+    } else {
+      // pull out dataset, shape, format, and return
+      if (pp.dataset && pp.shape && pp.format) {
+        if (pp.return === 'raw') {
+          path = H`${pp.dataset}/${pp.shape}.${pp.format}`
+          delete pp.format
+        } else {
+          path = H`${pp.dataset}/${pp.shape}`
+        }
+        delete pp.dataset
+        delete pp.shape
+        delete pp.return
+      } else if (pp.dataset) {
+        path = H`${pp.dataset}`
+        delete pp.dataset
       }
-      delete pp.dataset
-      delete pp.shape
-      delete pp.return
-    } else if (pp.dataset) {
-      path = H`${pp.dataset}`
-      delete pp.dataset
     }
     let q = '?' + querystring.stringify(pp)
     if (q === '?') q = ''
@@ -73,13 +78,15 @@ router.use('/static', express.static('static', {
 router.get('/about', sitepage({
   title: 'About this site',
   mainbody: H`
-<p style="margin: 1em;">This is a <a href="https://github.com/sandhawke/quadsite">QuadSite</a> instance.  The site maintainer has not yet put any additional information here.</p>`
+<p style="margin: 1em;">This is a <a href="https://github.com/sandhawke/kgx-server">kgx-server</a> instance.  The site maintainer has not yet put any additional information here.</p>`
 }))
 
 router.get('/', async (req, res) => {
   if (!req.query.dataset) req.query.dataset = 'demo-1'
   return datasetpage(req, res)
 })
+
+router.get('/itemview', itemviewpage)
 
 router.get('/_list/', async (req, res) => {
   const buf = []
